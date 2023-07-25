@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/udacity/cd0046-SQL-and-Data-Modeling-for-the-Web/issues"
   },
-  "homepage": "https://github.com/udacity/cd0046-SQL-and-Data-Modeling-for-the-Web#readme"
+  "homepage": "https://github.com/udacity/cd0046-SQL-and-Data-Modeling-for-the-Web#readme",
+  "dependencies": {
+    "bootstrap": "^3.4.1"
+  }
 }

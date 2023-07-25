@@ -53,7 +53,7 @@ npm install bootstrap@3
 
   ```sh
   ├── README.md
-  ├── app.py *** the main driver of the app. Includes your SQLAlchemy models.
+  ├── app.py *** the main driver of the app. Includes your SQLAlchemy app_models.
                     "python app.py" to run after installing dependencies
   ├── config.py *** Database URLs, CSRF generation, etc
   ├── error.log

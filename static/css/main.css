@@ -101,6 +101,12 @@ ul.items {
   padding: 0;
   margin: 0;
 }
+ul.items li.venue {
+  display: flex;
+}
+ul.items li.venue .delete-venue {
+  height: 24px;
+}
 ul.items > li > a {
   margin-bottom: 15px;
   display: flex;
