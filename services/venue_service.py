@@ -55,6 +55,23 @@ class VenueService:
         return venue
 
     @staticmethod
+    def update_venue(request, venue_id):
+        """
+        Updates the venue from the db with our form data
+        :param request:
+        :param venue_id:
+        :return:
+        """
+        venue_form = VenueService.__parse_venue_obj(request)
+        venue_db: Venue = Venue.query.get(venue_id)
+
+        for key, value in venue_db.__dict__.items():
+            if key == "id":
+                continue
+            elif hasattr(Venue, key) and getattr(venue_form, key) != value:
+                setattr(venue_db, key, getattr(venue_form, key))
+
+    @staticmethod
     def venue_search(search_term: str):
         """
         Search a venue by name -> if the search term is contained in the venue name than will give

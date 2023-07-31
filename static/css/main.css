@@ -116,11 +116,11 @@ ul.items > li > a {
 ul.items > li > a > i {
   padding: 7px 10px 0;
 }
-ul.items > li:hover {
+ul.items > li:hover:not(.show_item) {
   color: orange;
   cursor: pointer;
 }
-ul.items > li:hover h5 {
+ul.items > li:hover:not(.show_item) h5 {
   color: orange;
 }
 .item {
@@ -131,6 +131,13 @@ ul.items > li:hover h5 {
   margin-top: 0;
   margin-bottom: 5px;
 }
+ul.items .show_item {
+  border-bottom: 1px dashed black;
+}
+ul.items .show_item img {
+  width: 10rem !important;
+}
+
 img {
   max-width: 100%;
   max-height: 500px;

@@ -29,7 +29,7 @@ class ArtistService:
         return artist
 
     @staticmethod
-    def get_all_artists():
+    def get_all_artists() -> list[dict]:
         """
         Returns list of artists
         :return:
@@ -40,12 +40,29 @@ class ArtistService:
     @staticmethod
     def create_artist(request) -> Artist:
         """
-        Creates an artist depending on the form data that is sent in the request
+        Returns an artist depending on the form data that is sent in the request
         :param request:
         :return:
         """
         artist = ArtistService.__parse_artist_obj(request)
         return artist
+
+    @staticmethod
+    def update_artist(request, artist_id):
+        """
+        Updates the artist from the db with our form data
+        :param request:
+        :param artist_id:
+        :return:
+        """
+        artist_form = ArtistService.__parse_artist_obj(request)
+        artist_db: Artist = Artist.query.get(artist_id)
+
+        for key, value in artist_db.__dict__.items():
+            if key == "id":
+                continue
+            elif hasattr(Artist, key) and getattr(artist_form, key) != value:
+                setattr(artist_db, key, getattr(artist_form, key))
 
     @staticmethod
     def artist_search(search_term: str):
