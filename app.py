@@ -1,16 +1,18 @@
 # ----------------------------------------------------------------------------#
 # Imports
 # ----------------------------------------------------------------------------#
+import sys
 
 import dateutil.parser
 import babel
-from flask import Flask, render_template, request, flash, redirect, url_for
+from flask import Flask, render_template, request, flash, redirect, url_for, jsonify
 from flask_migrate import Migrate
 from flask_moment import Moment
 import logging
 from logging import Formatter, FileHandler
 
 from app_models.artist import Artist
+from app_models.show import Show
 from app_models.venue import Venue
 from forms import *
 from app_models.db_model import db
@@ -92,25 +94,35 @@ def create_venue_form():
 def create_venue_submission():
     # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
     error = False
-    try:
-        data = VenueService.create_venue(request)
-        db.session.add(data)
-        db.session.commit()
-    except:
-        error = True
-        db.session.rollback()
-    finally:
-        db.session.close()
+    form_data = VenueForm(request.form, meta={'csrf': False})
 
-    if error:
-        # abort(500)
-        # on unsuccessful db insert, flash error occurred
-        flash('An error occurred. Venue ' + request.form['name'] + ' could not be listed.')
+    if form_data.validate():
+        try:
+            data = VenueService.create_venue(form_data)
+            db.session.add(data)
+            db.session.commit()
+        except:
+            error = True
+            db.session.rollback()
+        finally:
+            db.session.close()
+
+        if error:
+            # abort(500)
+            # on unsuccessful db insert, flash error occurred
+            flash('An error occurred. Venue ' + request.form['name'] + ' could not be listed.')
+        else:
+            # on successful db insert, flash success
+            flash('Venue ' + request.form['name'] + ' was successfully listed!')
+
+        return render_template('pages/home.html')
     else:
-        # on successful db insert, flash success
-        flash('Venue ' + request.form['name'] + ' was successfully listed!')
-
-    return render_template('pages/home.html')
+        message = []
+        for field, errors in form_data.errors.items():
+            for error in errors:
+                message.append(f"{field}: {error}")
+        flash('Please fix the following errors: ' + ', '.join(message))
+        return render_template('forms/new_venue.html', form=form_data)
 
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
@@ -169,22 +181,33 @@ def edit_artist(artist_id):
 @app.route('/artists/<int:artist_id>/edit', methods=['POST'])
 def edit_artist_submission(artist_id):
     error = False
-    try:
-        ArtistService.update_artist(request, artist_id)
-        db.session.commit()
-    except:
-        db.session.rollback()
-        error = True
-    finally:
-        db.session.close()
-    if error:
-        # on unsuccessful db update, flash error occurred
-        flash('An error occurred. Artist ' + request.form['name'] + ' could not be update.')
-    else:
-        # on successful db insert, flash success
-        flash('Artist ' + request.form['name'] + ' was successfully updated!')
+    form_data = ArtistForm(request.form, meta={'csrf': False})
+    if form_data.validate():
+        try:
+            ArtistService.update_artist(form_data, artist_id)
+            db.session.commit()
+        except:
+            db.session.rollback()
+            error = True
+        finally:
+            db.session.close()
+        if error:
+            # on unsuccessful db update, flash error occurred
+            flash('An error occurred. Artist ' + request.form['name'] + ' could not be update.')
+        else:
+            # on successful db insert, flash success
+            flash('Artist ' + request.form['name'] + ' was successfully updated!')
 
-    return redirect(url_for('show_artist', artist_id=artist_id))
+        return redirect(url_for('show_artist', artist_id=artist_id))
+    else:
+        # Not valid form
+        flash('Artist form is not valid !')
+        message = []
+        for field, errors in form_data.errors.items():
+            for error in errors:
+                message.append(f"{field}: {error}")
+        flash('Please fix the following errors: ' + ', '.join(message))
+    return render_template("forms/new_artist.html", form=form_data)
 
 
 @app.route('/venues/<int:venue_id>/edit', methods=['GET'])
@@ -197,22 +220,32 @@ def edit_venue(venue_id):
 @app.route('/venues/<int:venue_id>/edit', methods=['POST'])
 def edit_venue_submission(venue_id):
     error = False
-    try:
-        VenueService.update_venue(request, venue_id)
-        db.session.commit()
-    except:
-        db.session.rollback()
-        error = True
-    finally:
-        db.session.close()
-    if error:
-        # on unsuccessful db update, flash error occurred
-        flash('An error occurred. Venue ' + request.form['name'] + ' could not be update.')
-    else:
-        # on successful db insert, flash success
-        flash('Venue ' + request.form['name'] + ' was successfully updated!')
 
-    return redirect(url_for('show_venue', venue_id=venue_id))
+    form_data = VenueForm(request.form, meta={'csrf': False})
+    if form_data.validate():
+        try:
+            VenueService.update_venue(form_data, venue_id)
+            db.session.commit()
+        except:
+            db.session.rollback()
+            error = True
+        finally:
+            db.session.close()
+        if error:
+            # on unsuccessful db update, flash error occurred
+            flash('An error occurred. Venue ' + request.form['name'] + ' could not be update.')
+        else:
+            # on successful db insert, flash success
+            flash('Venue ' + request.form['name'] + ' was successfully updated!')
+
+        return redirect(url_for('show_venue', venue_id=venue_id))
+    else:
+        message = []
+        for field, errors in form_data.errors.items():
+            for error in errors:
+                message.append(f"{field}: {error}")
+        flash('Please fix the following errors: ' + ', '.join(message))
+        return render_template('forms/new_venue.html', form=form_data)
 
 
 #  Create Artist
@@ -228,24 +261,31 @@ def create_artist_form():
 def create_artist_submission():
     # called upon submitting the new artist listing form
     error = False
-    try:
-        data = ArtistService.create_artist(request)
-        db.session.add(data)
-        db.session.commit()
-    except:
-        error = True
-        db.session.rollback()
-    finally:
-        db.session.close()
+    form_data = ArtistForm(request.form, meta={"csrf": False})
+    if form_data.validate():
+        try:
+            data = ArtistService.create_artist(form_data)
+            db.session.add(data)
+            db.session.commit()
+        except:
+            error = True
+            db.session.rollback()
+            print(sys.exc_info())
+        finally:
+            db.session.close()
 
-    if error:
-        # on unsuccessful db insert, flash error occurred
-        flash('An error occurred. Artist ' + request.form['name'] + ' could not be listed.')
+        if error:
+            # on unsuccessful db insert, flash error occurred
+            flash('An error occurred. Artist ' + request.form['name'] + ' could not be listed.')
+        else:
+            # on successful db insert, flash success
+            flash('Artist ' + request.form['name'] + ' was successfully listed!')
+
+        return render_template('pages/home.html')
     else:
-        # on successful db insert, flash success
-        flash('Artist ' + request.form['name'] + ' was successfully listed!')
-
-    return render_template('pages/home.html')
+        # Not valid form
+        flash('Artist form is not valid !')
+    return render_template("forms/new_artist.html", form=form_data)
 
 
 #  Shows
@@ -269,24 +309,35 @@ def create_shows():
 def create_show_submission():
     # called to create new shows in the db, upon submitting new show listing form
     error = False
-    try:
-        data = ShowService.create_show(request)
-        db.session.add(data)
-        db.session.commit()
-    except:
-        error = True
-        db.session.rollback()
-    finally:
-        db.session.close()
+    form_data = ShowForm(request.form, meta={'csrf': False})
+    if form_data.validate():
+        try:
+            show = Show()
+            form_data.populate_obj(show)
+            # data = ShowService.create_show(form_data)
+            db.session.add(show)
+            db.session.commit()
+        except:
+            error = True
+            db.session.rollback()
+        finally:
+            db.session.close()
 
-    if error:
-        # on unsuccessful db insert, flash error occurred
-        flash('An error occurred. Show could not be listed.')
+        if error:
+            # on unsuccessful db insert, flash error occurred
+            flash('An error occurred. Show could not be listed.')
+        else:
+            # on successful db insert, flash success
+            flash('Show was successfully listed!')
+
+        return render_template('pages/home.html')
     else:
-        # on successful db insert, flash success
-        flash('Show was successfully listed!')
-
-    return render_template('pages/home.html')
+        message = []
+        for field, errors in form_data.errors.items():
+            for error in errors:
+                message.append(f"{field}: {error}")
+        flash('Please fix the following errors: ' + ', '.join(message))
+        return render_template('forms/new_show.html', form=form_data)
 
 
 @app.route('/shows/search', methods=['POST'])

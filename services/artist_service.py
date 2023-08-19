@@ -17,15 +17,14 @@ class ArtistService:
         :return:
         """
         artist = Artist.query.get(artist_id)
-        setattr(artist, "past_shows", [])
-        setattr(artist, "upcoming_shows", [])
-        date_now = datetime.datetime.now()
-        for show in artist.shows:
-            ArtistService.__shows_per_date(artist, show, "past_shows") if date_now > show.start_time \
-                else ArtistService.__shows_per_date(artist, show, "upcoming_shows")
+        past_shows = db.session.query(Show).join(Artist).filter(Show.artist_id == artist_id).filter(Show.start_time < datetime.datetime.now()).all()
+        upcoming_shows = db.session.query(Show).join(Artist).filter(Show.artist_id == artist_id).filter(Show.start_time >= datetime.datetime.now()).all()
 
-        setattr(artist, "past_shows_count", len(getattr(artist, "past_shows")))
-        setattr(artist, "upcoming_shows_count", len(getattr(artist, "upcoming_shows")))
+        setattr(artist, "past_shows", ArtistService.__transform_shows(past_shows))
+        setattr(artist, "upcoming_shows", ArtistService.__transform_shows(upcoming_shows))
+        setattr(artist, "past_shows_count", len(past_shows))
+        setattr(artist, "upcoming_shows_count", len(upcoming_shows))
+
         return artist
 
     @staticmethod
@@ -38,24 +37,25 @@ class ArtistService:
         return [{"id": artist.id, "name": artist.name} for artist in artists]
 
     @staticmethod
-    def create_artist(request) -> Artist:
+    def create_artist(form_data) -> Artist:
         """
         Returns an artist depending on the form data that is sent in the request
-        :param request:
+        :param form_data:
         :return:
         """
-        artist = ArtistService.__parse_artist_obj(request)
+
+        artist = ArtistService.__parse_artist_obj(form_data)
         return artist
 
     @staticmethod
-    def update_artist(request, artist_id):
+    def update_artist(form_data, artist_id):
         """
         Updates the artist from the db with our form data
-        :param request:
+        :param form_data:
         :param artist_id:
         :return:
         """
-        artist_form = ArtistService.__parse_artist_obj(request)
+        artist_form = ArtistService.__parse_artist_obj(form_data)
         artist_db: Artist = Artist.query.get(artist_id)
 
         for key, value in artist_db.__dict__.items():
@@ -76,21 +76,14 @@ class ArtistService:
         return {"count": len(search_artists), "data": [GeneralService.parse_obj_short(artist) for artist in search_artists]}
 
     @staticmethod
-    def __shows_per_date(artist, show, attribute):
-        shows = getattr(artist, attribute)
-        setattr(show, "venue_name", show.venue.name)
-        setattr(show, "venue_image_link", show.venue.image_link)
-        shows.append(show)
-        setattr(artist, attribute, shows)
+    def __transform_shows(shows):
+        for show in shows:
+            setattr(show, "venue_name", show.venue.name)
+            setattr(show, "venue_image_link", show.venue.image_link)
+        return shows
 
     @staticmethod
-    def __parse_artist_obj(request) -> Artist:
-        seeking_venue = False
-        for index, form_data in enumerate(request.form):
-            if form_data == "seeking_venue":
-                seeking_venue = True
-                break
-        return Artist(name=request.form["name"], city=request.form["city"], state=request.form["state"],
-                      phone=request.form["phone"], genres=[request.form["genres"]], image_link=request.form["image_link"],
-                      facebook_link=request.form["facebook_link"], website=request.form["website_link"],
-                      seeking_venue=seeking_venue, seeking_description=request.form["seeking_description"])
+    def __parse_artist_obj(form) -> Artist:
+        return Artist(name=form.name.data, city=form.city.data, state=form.state.data, phone=form.phone.data,
+                      genres=form.genres.data, image_link=form.image_link.data, facebook_link=form.facebook_link.data,
+                      website=form.website_link.data, seeking_venue=form.seeking_venue.data, seeking_description=form.seeking_description.data)

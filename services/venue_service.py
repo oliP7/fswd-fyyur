@@ -18,15 +18,15 @@ class VenueService:
         :return:
         """
         venue = Venue.query.get(venue_id)
-        setattr(venue, "past_shows", [])
-        setattr(venue, "upcoming_shows", [])
-        date_now = datetime.datetime.now()
-        for show in venue.shows:
-            VenueService.__shows_per_date(venue, show, "past_shows") if date_now > show.start_time \
-                else VenueService.__shows_per_date(venue, show, "upcoming_shows")
+        past_shows = db.session.query(Show).join(Venue).filter(Show.venue_id == venue_id).filter(Show.start_time < datetime.datetime.now()).all()
+        upcoming_shows = db.session.query(Show).join(Venue).filter(Show.venue_id == venue_id).filter(
+            Show.start_time >= datetime.datetime.now()).all()
 
-        setattr(venue, "past_shows_count", len(getattr(venue, "past_shows")))
-        setattr(venue, "upcoming_shows_count", len(getattr(venue, "upcoming_shows")))
+        setattr(venue, "past_shows", VenueService.__transform_shows(past_shows))
+        setattr(venue, "upcoming_shows", VenueService.__transform_shows(upcoming_shows))
+        setattr(venue, "past_shows_count", len(past_shows))
+        setattr(venue, "upcoming_shows_count", len(upcoming_shows))
+
         return venue
 
     @staticmethod
@@ -45,24 +45,24 @@ class VenueService:
         return data
 
     @staticmethod
-    def create_venue(request) -> Venue:
+    def create_venue(form_data) -> Venue:
         """
         Creates a venue depending on the form data that is sent in the request
         :param request:
         :return:
         """
-        venue = VenueService.__parse_venue_obj(request)
+        venue = VenueService.__parse_venue_obj(form_data)
         return venue
 
     @staticmethod
-    def update_venue(request, venue_id):
+    def update_venue(form_data, venue_id):
         """
         Updates the venue from the db with our form data
-        :param request:
+        :param form_data:
         :param venue_id:
         :return:
         """
-        venue_form = VenueService.__parse_venue_obj(request)
+        venue_form = VenueService.__parse_venue_obj(form_data)
         venue_db: Venue = Venue.query.get(venue_id)
 
         for key, value in venue_db.__dict__.items():
@@ -83,12 +83,11 @@ class VenueService:
         return {"count": len(search_venues), "data": [GeneralService.parse_obj_short(venue) for venue in search_venues]}
 
     @staticmethod
-    def __shows_per_date(venue, show, attribute):
-        shows = getattr(venue, attribute)
-        setattr(show, "artist_name", show.artist.name)
-        setattr(show, "artist_image_link", show.artist.image_link)
-        shows.append(show)
-        setattr(venue, attribute, shows)
+    def __transform_shows(shows):
+        for show in shows:
+            setattr(show, "artist_name", show.artist.name)
+            setattr(show, "artist_image_link", show.artist.image_link)
+        return shows
 
     @staticmethod
     def __parse_venue_per_city(city: str, state: str, venues: list[Venue]):
@@ -96,14 +95,9 @@ class VenueService:
                 "venues": [GeneralService.parse_obj_short(venue) for venue in venues if venue.city == city and venue.state == state]}
 
     @staticmethod
-    def __parse_venue_obj(request) -> Venue:
-        seeking_talent = False
-        for index, form_data in enumerate(request.form):
-            if form_data == "seeking_talent":
-                seeking_talent = True
-                break
-        return Venue(name=request.form["name"], address=request.form["address"], city=request.form["city"],
-                     state=request.form["state"], phone=request.form["phone"], website=request.form["website_link"],
-                     facebook_link=request.form["facebook_link"], image_link=request.form["image_link"],
-                     genres=[request.form["genres"]], seeking_talent=seeking_talent,
-                     seeking_description=request.form["seeking_description"])
+    def __parse_venue_obj(form) -> Venue:
+        return Venue(name=form.name.data, address=form.address.data, city=form.city.data,
+                     state=form.state.data, phone=form.phone.data, website=form.website_link.data,
+                     facebook_link=form.facebook_link.data, image_link=form.image_link.data,
+                     genres=form.genres.data, seeking_talent=form.seeking_talent.data,
+                     seeking_description=form.seeking_description.data)

@@ -1,7 +1,7 @@
 import enum
 
 
-class MusicTypes(str, enum.Enum):
+class Genre(enum.Enum):
     ALTERNATIVE = "Alternative"
     BLUES = "Blues"
     CLASSICAL = "Classical"
@@ -21,3 +21,7 @@ class MusicTypes(str, enum.Enum):
     ROCK_N_ROLL = "Rock n Roll"
     SOUL = "Soul"
     OTHER = "Other"
+
+    @classmethod
+    def choices(cls):
+        return [(choice.name, choice.value) for choice in cls]

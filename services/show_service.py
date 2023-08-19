@@ -24,13 +24,13 @@ class ShowService:
         return data
 
     @staticmethod
-    def create_show(request) -> Show:
+    def create_show(form_data) -> Show:
         """
         Creates a show depending on the form data that is sent in the request
-        :param request:
+        :param form_data:
         :return:
         """
-        show = ShowService.__parse_show_obj(request)
+        show = ShowService.__parse_show_obj(form_data)
         return show
 
     @staticmethod
@@ -60,9 +60,9 @@ class ShowService:
                 "start_time": show.start_time}
 
     @staticmethod
-    def __parse_show_obj(request) -> Show:
+    def __parse_show_obj(form) -> Show:
         date_format = '%Y-%m-%d %H:%M:%S'
-        date_obj = datetime.datetime.strptime(request.form["start_time"], date_format)
-        return Show(artist_id=request.form["artist_id"], venue_id=request.form["venue_id"], start_time=date_obj)
+        date_obj = datetime.datetime.strptime(form.start_time.data, date_format)
+        return Show(artist_id=form.artist_id.data, venue_id=form.venue_id.data, start_time=date_obj)
 
 

@@ -17,16 +17,4 @@ class Venue(db.Model):
     seeking_description = db.Column(db.String)
     music_genres = db.Column(db.ARRAY(db.String(120)))
 
-    shows = db.relationship('Show', backref='venue', lazy=True)
-
-#
-# class VenueModel(db.Model):
-#     id: db.Column(db.Integer)
-#     name: db.Column(db.String)
-#     num_upcoming_shows: db.Column(db.Integer)
-#
-#
-# class VenueCityModel(db.Model):
-#     city: db.Column(db.String)
-#     state: db.Column(db.String)
-#     venues: list[VenueModel]
+    shows = db.relationship('Show', backref='venue', lazy='joined', cascade="all, delete")

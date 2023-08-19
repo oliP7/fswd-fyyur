@@ -15,4 +15,5 @@ class Artist(db.Model):
     website = db.Column(db.String(120))
     seeking_venue = db.Column(db.Boolean)
     seeking_description = db.Column(db.String)
-    shows = db.relationship('Show', backref='artist', lazy=True)
+
+    shows = db.relationship('Show', backref='artist', lazy='joined', cascade="all, delete")
